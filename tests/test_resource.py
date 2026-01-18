@@ -1,7 +1,7 @@
 import os
 import pytest
 from make_argocd_fly.resource.viewer import ResourceViewer, _get_resource_params, ResourceType, build_scoped_viewer
-from make_argocd_fly.resource.writer import GenericWriter, YamlWriter, plan_writer, WriterPlan
+from make_argocd_fly.resource.writer import GenericWriter, YamlWriter
 from make_argocd_fly.exception import InternalError, YamlObjectRequiredError
 from make_argocd_fly.param import ApplicationTypes
 from make_argocd_fly.util import check_lists_equal
@@ -658,44 +658,70 @@ def test_ResourceViewer__search_subresources__combined_template_and_excludes(tmp
                                    excludes=['env/patch*'])
   assert _paths(tpl) == ['env/values.yml.j2']
 
+def test_ResourceViewer__search_subresources__include_by_prefix(tmp_path):
+  root = tmp_path / 'src'
+  _write(root / 'a' / 'config.yml', 'k: v')
+  _write(root / 'a' / 'other.yml', 'k: v')
+  _write(root / 'b' / 'sub' / 'keep.yml', 'k: v')
 
-##################
-### plan_writer
-##################
+  viewer = build_scoped_viewer(str(root))
 
-def test_plan_writer__generic_app_always_generic():
-  # Even if has_yaml_obj is True, GENERIC apps must use GenericWriter and raw data
-  plan = plan_writer(ApplicationTypes.GENERIC, ResourceType.YAML, has_yaml_obj=True)
-  assert isinstance(plan, WriterPlan)
-  assert isinstance(plan.writer, GenericWriter)
-  assert plan.use_yaml_obj is False
+  children = viewer.search_subresources(resource_types=[ResourceType.YAML],
+                                        template=False,
+                                        includes=['a'])
 
-  plan2 = plan_writer(ApplicationTypes.GENERIC, ResourceType.UNKNOWN, has_yaml_obj=False)
-  assert isinstance(plan2.writer, GenericWriter)
-  assert plan2.use_yaml_obj is False
+  assert _paths(children) == [
+    'a/config.yml',
+    'a/other.yml',
+  ]
 
-def test_plan_writer__k8s_yaml_with_yaml_obj():
-  plan = plan_writer(ApplicationTypes.K8S, ResourceType.YAML, has_yaml_obj=True)
-  assert isinstance(plan.writer, YamlWriter)
-  assert plan.use_yaml_obj is True
+def test_ResourceViewer__search_subresources__include_by_glob(tmp_path):
+  root = tmp_path / 'src'
+  _write(root / 'a' / 'config.yml', 'k: v')
+  _write(root / 'a' / 'config-prod.yml', 'k: v')
+  _write(root / 'a' / 'notes.txt', 'n/a')
+  _write(root / 'b' / 'config-prod.yml', 'k: v')
 
-def test_plan_writer__k8s_yaml_without_yaml_obj():
-  # If we ever end up here, we expect the writer to be YamlWriter, but the
-  # caller will pass raw data, which should trigger YamlObjectRequiredError.
-  plan = plan_writer(ApplicationTypes.K8S, ResourceType.YAML, has_yaml_obj=False)
-  assert isinstance(plan.writer, YamlWriter)
-  assert plan.use_yaml_obj is False
+  viewer = build_scoped_viewer(str(root))
 
-def test_plan_writer__k8s_non_yaml():
-  plan = plan_writer(ApplicationTypes.K8S, ResourceType.UNKNOWN, has_yaml_obj=False)
-  assert isinstance(plan.writer, GenericWriter)
-  assert plan.use_yaml_obj is False
+  children = viewer.search_subresources(resource_types=[ResourceType.YAML],
+                                        template=False,
+                                        includes=['**/*prod*'])
 
-def test_plan_writer__k8s_unsupported_raises():
-  with pytest.raises(InternalError):
-    plan_writer(ApplicationTypes.K8S, ResourceType.DIRECTORY, has_yaml_obj=False)
-  with pytest.raises(InternalError):
-    plan_writer(ApplicationTypes.K8S, ResourceType.DOES_NOT_EXIST, has_yaml_obj=False)
+  assert _paths(children) == [
+    'a/config-prod.yml',
+    'b/config-prod.yml',
+  ]
+
+def test_ResourceViewer__search_subresources__include_and_exclude_combined(tmp_path):
+  root = tmp_path / 'src'
+  _write(root / 'env' / 'values.yml', 'k: v')
+  _write(root / 'env' / 'secret.yml', 'k: v')
+  _write(root / 'env' / 'secret-values.yml', 'k: v')
+  _write(root / 'other' / 'values.yml', 'k: v')
+
+  viewer = build_scoped_viewer(str(root))
+
+  children = viewer.search_subresources(resource_types=[ResourceType.YAML],
+                                        template=False,
+                                        includes=['env/**'],
+                                        excludes=['**/secret*'])
+
+  assert _paths(children) == ['env/values.yml']
+
+def test_ResourceViewer__search_subresources__include_limits_to_yaml_templates(tmp_path):
+  root = tmp_path / 'src'
+  _write(root / 'env' / 'tpl.yml.j2', 'k: {{ v }}')
+  _write(root / 'env' / 'tpl.txt.j2', 'plain')
+  _write(root / 'env' / 'plain.yml', 'k: v')
+
+  viewer = build_scoped_viewer(str(root))
+
+  # template=True + YAML types + include should still behave predictably
+  tpl = viewer.search_subresources(resource_types=[ResourceType.YAML],
+                                   template=True,
+                                   includes=['env/**'])
+  assert _paths(tpl) == ['env/tpl.yml.j2']
 
 ##################
 ### GenericWriter
