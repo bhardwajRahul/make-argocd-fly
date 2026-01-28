@@ -1,0 +1,53 @@
+# make-argocd-fly
+
+> A CLI that renders Helm, Kustomize, and Jinja2 app sources into plain Kubernetes manifests and generates ArgoCD Applications for multi-environment GitOps.
+
+make-argocd-fly is a static manifest generator that applies the Rendered Manifest Pattern: it renders templated inputs outside the cluster, then writes deterministic YAML output you can commit and review. The tool treats the repo as a structured pipeline with `config/` for environment/app definitions, `source/` for app inputs, and `output/` for generated manifests.
+
+At runtime, configuration files are merged, variables resolved with scoped precedence, and app types determine how sources are rendered (plain YAML, Jinja2, Kustomize, Helmfile). The CLI orchestrates rendering, optional linting, and ArgoCD Application CR generation, so interpreting docs should start with the CLI contract and configuration model, then drill into app-type specifics and examples.
+
+## Installation & Setup
+- [Installation Guide](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/getting-started.md): Setup, prerequisites, and first render.
+- [Dependencies](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/getting-started.md): Required tools (Python 3.11+, Helm, Kustomize, Helmfile, linters).
+- [Configuration](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/configuration.md): Config schema, parameters, and variable precedence.
+
+## Core Documentation
+- [API Reference](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/cli.md): Full CLI flags and behavior.
+- [Main Module](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/README.md): Project overview, core concepts, and workflow.
+- [Usage Examples](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/examples.md): End-to-end example walkthroughs.
+
+## Examples & Tutorials
+- [Getting Started](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/getting-started.md): Basic tutorial for first run and project layout.
+- [Advanced Usage](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/docs/kustomize.md): Kustomize, Helm integration, and app-type specifics.
+- [Example Config: App Types](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/config/config.yml): Sample app-type config used in examples.
+- [Example Source: YAML App](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/01_yaml_app/example_app.yml): Plain YAML app input.
+- [Example Source: YAML App ConfigMap](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/01_yaml_app/configmap_example_app.yml): ConfigMap resource input.
+- [Example Source: Jinja2 App](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/02_jinja2_app/example_app.yml.j2): Jinja2-templated app input.
+- [Example Source: Kustomize App](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/03_kustomize_app/example_app.yml.j2): Kustomize app base manifest template.
+- [Example Source: Kustomize App Kustomization](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/03_kustomize_app/kustomization.yml): Kustomize config for app rendering.
+- [Example Source: Kustomize+Helm App Kustomization](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/04_kustomize_helm_app/kustomization.yml.j2): Kustomize with Helm chart inflation.
+- [Example Source: Helmfile App](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/source/06_helmfile_app/helmfile.yaml.j2): Helmfile app definition template.
+- [Example Output: App-of-Apps Application 01](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_01-yaml-app-example.yml): ArgoCD Application for YAML app.
+- [Example Output: App-of-Apps Application 02](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_02-jinja2-app-example.yml): ArgoCD Application for Jinja2 app.
+- [Example Output: App-of-Apps Application 03](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_03-kustomize-app-example.yml): ArgoCD Application for Kustomize app.
+- [Example Output: App-of-Apps Application 04](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_04-kustomize-helm-app-example.yml): ArgoCD Application for Kustomize+Helm app.
+- [Example Output: App-of-Apps Application 05](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_05-argocd-managed-helm-app-example.yml): ArgoCD Application for ArgoCD-managed Helm app.
+- [Example Output: App-of-Apps Application 06](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/00_app_of_apps/application_06-helmfile-app-example.yml): ArgoCD Application for Helmfile app.
+- [Example Output: YAML App ConfigMap](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/01_yaml_app/configmap_example-app.yml): Rendered ConfigMap manifest.
+- [Example Output: YAML App Deployment](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/01_yaml_app/deployment_example-app.yml): Rendered Deployment manifest.
+- [Example Output: YAML App Service](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/01_yaml_app/service_example-app.yml): Rendered Service manifest.
+- [Example Output: Jinja2 App Deployment](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/02_jinja2_app/deployment_example-app.yml): Rendered Deployment manifest.
+- [Example Output: Jinja2 App Service](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/02_jinja2_app/service_example-app.yml): Rendered Service manifest.
+- [Example Output: Kustomize App Deployment](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/03_kustomize_app/deployment_example-app.yml): Rendered Deployment manifest.
+- [Example Output: Kustomize App Service](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/03_kustomize_app/service_example-app.yml): Rendered Service manifest.
+- [Example Output: Kustomize+Helm App Deployment](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/04_kustomize_helm_app/deployment_hello-world.yml): Rendered Deployment manifest.
+- [Example Output: Kustomize+Helm App Service](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/04_kustomize_helm_app/service_hello-world.yml): Rendered Service manifest.
+- [Example Output: Kustomize+Helm App ServiceAccount](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/04_kustomize_helm_app/serviceaccount_hello-world.yml): Rendered ServiceAccount manifest.
+- [Example Output: Helmfile App Deployment](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/06_helmfile_app/deployment_hello-world.yml): Rendered Deployment manifest.
+- [Example Output: Helmfile App Service](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/06_helmfile_app/service_hello-world.yml): Rendered Service manifest.
+- [Example Output: Helmfile App ServiceAccount](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/examples/app_types/output/example/06_helmfile_app/serviceaccount_hello-world.yml): Rendered ServiceAccount manifest.
+
+## Optional
+- [Changelog](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/DEPRECATIONS.md): Deprecations and removals; no full changelog.
+- [Contributing Guide](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/CONTRIBUTING.md): Development workflow and release steps.
+- [License](https://raw.githubusercontent.com/Karandash8/make-argocd-fly/main/LICENSE): MIT license text.
