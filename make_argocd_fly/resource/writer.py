@@ -38,18 +38,23 @@ yaml.add_representer(str, represent_str, Dumper=YamlDumper)
 
 class AbstractWriter(ABC):
   @abstractmethod
-  def write(self, output_path: str, data: Any, env_name: str, app_name: str, origin: str) -> None: ...
+  def serialize(self, data: Any, env_name: str, app_name: str, origin: str) -> bytes: ...
+
+  def write(self, output_path: str | os.PathLike[str], data: Any, env_name: str, app_name: str, origin: str) -> None:
+    output_dir = os.path.dirname(os.fspath(output_path))
+    if output_dir:
+      os.makedirs(output_dir, exist_ok=True)
+    with open(output_path, 'wb') as f:
+      f.write(self.serialize(data, env_name, app_name, origin))
 
 
 class GenericWriter(AbstractWriter):
-  def write(self, output_path: str, data: Any, env_name: str, app_name: str, origin: str) -> None:
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    mode = 'wb' if isinstance(data, (bytes, bytearray, memoryview)) else 'w'
-    with open(output_path, mode) as f:
-      if mode == 'w':
-        f.write(str(data))
-      else:
-        f.write(data)
+  def serialize(self, data: Any, env_name: str, app_name: str, origin: str) -> bytes:
+    if isinstance(data, bytes):
+      return data
+    if isinstance(data, (bytearray, memoryview)):
+      return bytes(data)
+    return str(data).encode('utf-8')
 
 
 class YamlWriter(AbstractWriter):
@@ -57,19 +62,19 @@ class YamlWriter(AbstractWriter):
   Strict YAML writer: requires a parsed YAML mapping (dict) as input.
   Never parses text here. If the pipeline doesn't provide yaml_obj, that's an error.
   '''
-  def write(self, output_path: str, data: Any, env_name: str, app_name: str, origin: str) -> None:
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
+  def serialize(self, data: Any, env_name: str, app_name: str, origin: str) -> bytes:
     if not isinstance(data, dict):
       raise InternalError(f'YamlWriter requires dict yaml_obj; got {type(data).__name__} from {origin}')
 
-    with open(output_path, 'w') as f:
-      yaml.dump(data, f, Dumper=YamlDumper,
-                default_flow_style=False,
-                sort_keys=False,
-                allow_unicode=True,
-                encoding='utf-8',
-                explicit_start=True)
+    serialized = yaml.dump(data, Dumper=YamlDumper,
+                           default_flow_style=False,
+                           sort_keys=False,
+                           allow_unicode=True,
+                           encoding='utf-8',
+                           explicit_start=True)
+    if isinstance(serialized, bytes):
+      return serialized
+    return serialized.encode('utf-8')
 
 
 # Stateless singletons (safe to reuse across tasks)
